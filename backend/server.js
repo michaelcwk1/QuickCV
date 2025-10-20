@@ -7,8 +7,9 @@ const app = express();
 // CORS Configuration
 const allowedOrigins = [
   'http://localhost:5173',           // Local dev
-  'http://localhost:3000',
-  process.env.FRONTEND_URL,          // Production
+  'http://localhost:3000',           // Local dev
+  'https://quick-cv-gray.vercel.app/',  // Your Vercel URL
+  process.env.FRONTEND_URL,
 ];
 
 app.use(cors({

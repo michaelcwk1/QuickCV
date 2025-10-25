@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
 export default defineConfig(({ mode }) => ({
-  base: process.env.NODE_ENV === 'production' ? '/impact-cv/' : '/',
+ base: '/',
   server: {
     host: "::",
     port: 3000,

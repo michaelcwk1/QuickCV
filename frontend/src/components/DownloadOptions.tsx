@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileText, Printer } from 'lucide-react';
 import { CVData } from '@/lib/types';
@@ -11,8 +11,10 @@ interface DownloadOptionsProps {
 export function DownloadOptions({ cvData }: DownloadOptionsProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [snapReady, setSnapReady] = useState(false);
+  const [isPaymentInProgress, setIsPaymentInProgress] = useState(false);
+  const paymentInProgressRef = useRef(false); // Use ref to prevent race condition
 
-  // ✅ Load Midtrans Snap script
+  // Load Midtrans Snap script
   useEffect(() => {
     const existingScript = document.querySelector('#midtrans-script');
     if (existingScript) {
@@ -37,16 +39,14 @@ export function DownloadOptions({ cvData }: DownloadOptionsProps) {
     };
 
     document.body.appendChild(script);
-
-    return () => {
-      // Jangan remove script agar tidak perlu reload
-    };
   }, []);
 
   const generateHtmlContent = (): string => {
     const cvDocument = document.querySelector("#cv-preview")?.cloneNode(true) as HTMLElement;
-    cvDocument.style = "width: auto;";
-    const content = cvDocument?.outerHTML;
+    if (cvDocument) {
+      cvDocument.style.cssText = "width: auto;";
+    }
+    const content = cvDocument?.outerHTML || '';
     return `
     <!doctype html>
      <html>
@@ -65,15 +65,28 @@ export function DownloadOptions({ cvData }: DownloadOptionsProps) {
      `;
   };
 
-  // ✅ Panggil API backend untuk buat transaksi Midtrans
+  // Handle payment
   const handlePayment = async (onSuccessAction: () => void) => {
+    // Prevent multiple calls using ref
+    if (paymentInProgressRef.current) {
+      console.log('⚠️ Payment already in progress (blocked by ref)');
+      return;
+    }
+
     if (!snapReady) {
       toast.error("Payment system not ready yet. Please wait...");
       return;
     }
 
+    if (!window.snap) {
+      toast.error("Payment system not loaded. Please refresh the page.");
+      return;
+    }
+
     try {
+      paymentInProgressRef.current = true; // Set ref immediately
       setIsGenerating(true);
+      setIsPaymentInProgress(true);
       console.log('🔄 Initiating payment...');
 
       const payload = {
@@ -94,7 +107,7 @@ export function DownloadOptions({ cvData }: DownloadOptionsProps) {
 
       console.log('📤 Sending payload:', payload);
 
-      const response = await fetch("http://localhost:3001/api/payment/init", {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/payment/init`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -118,33 +131,38 @@ export function DownloadOptions({ cvData }: DownloadOptionsProps) {
         throw new Error(data.message || "Failed to get payment token");
       }
 
-      // ✅ Pastikan window.snap tersedia
-      if (!window.snap) {
-        throw new Error("Midtrans Snap not loaded");
-      }
+      // Small delay to ensure snap is ready
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      // ✅ Jalankan Snap popup
+      // Open Snap popup
       window.snap.pay(data.token, {
-        onSuccess: function (result) {
+        onSuccess: function (result: any) {
           console.log('✅ Payment success:', result);
           toast.success("Payment successful! Generating your file...");
-          // Jangan ada redirect, langsung jalankan action
+          paymentInProgressRef.current = false;
+          setIsPaymentInProgress(false);
           onSuccessAction();
         },
-        onPending: function (result) {
+        onPending: function (result: any) {
           console.log('⏳ Payment pending:', result);
           toast.message("Payment pending. Please complete the transaction.");
+          paymentInProgressRef.current = false;
           setIsGenerating(false);
+          setIsPaymentInProgress(false);
         },
-        onError: function (result) {
+        onError: function (result: any) {
           console.error('❌ Payment error:', result);
           toast.error("Payment failed. Please try again.");
+          paymentInProgressRef.current = false;
           setIsGenerating(false);
+          setIsPaymentInProgress(false);
         },
         onClose: function () {
           console.log('🚪 Snap popup closed');
           toast.message("Payment canceled. You can try again anytime.");
+          paymentInProgressRef.current = false;
           setIsGenerating(false);
+          setIsPaymentInProgress(false);
         },
       });
 
@@ -152,12 +170,19 @@ export function DownloadOptions({ cvData }: DownloadOptionsProps) {
       console.error('❌ Payment error:', error);
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       toast.error(`Failed to initiate payment: ${errorMsg}`);
+      paymentInProgressRef.current = false;
       setIsGenerating(false);
+      setIsPaymentInProgress(false);
     }
   };
 
-  // ✅ Fungsi export HTML (dipanggil setelah bayar sukses)
+  // Export HTML
   const exportHtml = () => {
+    if (paymentInProgressRef.current) {
+      console.log('⚠️ Payment in progress, ignoring click');
+      return;
+    }
+    
     handlePayment(() => {
       const htmlContent = generateHtmlContent();
       const blob = new Blob([htmlContent], { type: "text/html" });
@@ -179,8 +204,10 @@ export function DownloadOptions({ cvData }: DownloadOptionsProps) {
     });
   };
 
-  // ✅ Fungsi print (dipanggil setelah bayar sukses)
+  // Print
   const openPrintPreview = () => {
+    if (isPaymentInProgress) return;
+
     handlePayment(() => {
       const printWindow = window.open("", "_blank");
       if (!printWindow) {
@@ -223,20 +250,20 @@ export function DownloadOptions({ cvData }: DownloadOptionsProps) {
           variant="outline"
           className="flex items-center gap-2 justify-center"
           onClick={exportHtml}
-          disabled={isGenerating || !snapReady}
+          disabled={isGenerating || !snapReady || isPaymentInProgress}
         >
           <FileText className="h-4 w-4" />
-          <span>Export HTML</span>
+          <span>{isPaymentInProgress ? 'Processing...' : 'Export HTML'}</span>
         </Button>
 
         <Button
           variant="outline"
           className="flex items-center gap-2 justify-center"
           onClick={openPrintPreview}
-          disabled={isGenerating || !snapReady}
+          disabled={isGenerating || !snapReady || isPaymentInProgress}
         >
           <Printer className="h-4 w-4" />
-          <span>Print</span>
+          <span>{isPaymentInProgress ? 'Processing...' : 'Print'}</span>
         </Button>
       </div>
     </div>

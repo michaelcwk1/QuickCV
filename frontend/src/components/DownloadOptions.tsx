@@ -89,21 +89,21 @@ export function DownloadOptions({ cvData }: DownloadOptionsProps) {
       setIsPaymentInProgress(true);
       console.log('🔄 Initiating payment...');
 
-      const payload = {
-        orderId: `ORDER-${Date.now()}`,
-        amount: 5000,
-        email: cvData.basicInfo.email || 'guest@quickcv.com',
-        phone: cvData.basicInfo.phone || '08123456789',
-        name: cvData.basicInfo.name || 'Guest User',
-        itemDetails: [
-          {
-            id: 'cv-export',
-            price: 5000,
-            quantity: 1,
-            name: 'CV Export & Print License'
-          }
-        ]
-      };
+   const payload = {
+  orderId: `ORDER-${Date.now()}`,
+  amount: 5000,
+  email: cvData.basicInfo.email || 'guest@quickcv.com',
+  phone: (cvData.basicInfo.phone || '08123456789').replace(/[^\d+]/g, ''), // ← Remove non-numeric
+  name: cvData.basicInfo.name || 'Guest User',
+  itemDetails: [
+    {
+      id: 'cv-export',
+      price: 5000,
+      quantity: 1,
+      name: 'CV Export & Print License'
+    }
+  ]
+};
 
       console.log('📤 Sending payload:', payload);
 

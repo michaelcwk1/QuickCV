@@ -4,18 +4,31 @@ require('dotenv').config();
 
 const app = express();
 
-// CORS - ALLOW ALL (untuk development)
+// CORS - Allow production frontend
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://quick-cv-three.vercel.app',  // ← Add ini!
+  'https://quick-cv-git-main-michaelcwks-projects.vercel.app',  // ← Dan ini!
+  process.env.FRONTEND_URL,
+];
+
 app.use(cors({
-  origin: true,  // Allow all origins
+  origin: function(origin, callback) {
+    // Allow requests with no origin
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log('❌ CORS blocked origin:', origin);
+      callback(null, true); // Allow anyway for debugging
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-  optionsSuccessStatus: 200
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
 // Routes
 const paymentRoutes = require('./routes/payment');
 app.use('/api/payment', paymentRoutes);

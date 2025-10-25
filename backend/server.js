@@ -4,23 +4,13 @@ require('dotenv').config();
 
 const app = express();
 
-// CORS Configuration
-const allowedOrigins = [
-  'http://localhost:5173',           // Local dev
-  'http://localhost:3000',           // Local dev
-  'https://quick-cv-gray.vercel.app/',  // Your Vercel URL
-  process.env.FRONTEND_URL,
-];
-
+// CORS - ALLOW ALL (untuk development)
 app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
+  origin: true,  // Allow all origins
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  optionsSuccessStatus: 200
 }));
 
 app.use(express.json());
@@ -32,20 +22,34 @@ app.use('/api/payment', paymentRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date() });
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date(),
+    env: process.env.NODE_ENV 
+  });
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'QuickCV Backend API',
+    endpoints: ['/health', '/api/payment/init']
+  });
 });
 
 // Error handling
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  console.error('❌ Error:', err);
   res.status(500).json({ 
     success: false, 
     message: err.message || 'Server error' 
   });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV}`);
+  console.log(`   Local: http://localhost:${PORT}`);
+  console.log(`   Network: http://10.10.2.136:${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });

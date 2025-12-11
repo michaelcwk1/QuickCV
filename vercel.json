@@ -1,7 +1,6 @@
 {
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/dist",
-  "public": "frontend/public",
   "env": {
     "MIDTRANS_SERVER_KEY": "@midtrans_server_key",
     "MIDTRANS_CLIENT_KEY": "@midtrans_client_key",

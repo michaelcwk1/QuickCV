@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/api/payment/init", "destination": "/api/payment/init.js" },
+    { "source": "/api/payment/status/(.*)", "destination": "/api/payment/status.js" },
+    { "source": "/api/payment/notification", "destination": "/api/payment/notification.js" },
+    { "source": "/api/payment/callback", "destination": "/api/payment/callback.js" }
+  ]
+}

@@ -106,7 +106,7 @@ export function DownloadOptions({ cvData }: DownloadOptionsProps) {
 };
 
       console.log('📤 Sending payload:', payload);
-
+// const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/payment/init`, {cl
       const response = await fetch(`/api/payment/init`, {
         method: "POST",
         headers: { 

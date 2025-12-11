@@ -1,0 +1,15 @@
+// File ini optional - jika menggunakan axios approach di init.js
+// Kamu bisa menghapus file ini
+
+// Atau jika ingin tetap pakai midtrans-client:
+import midtransClient from "midtrans-client";
+
+if (!process.env.MIDTRANS_SERVER_KEY) {
+  console.warn("⚠️ MIDTRANS_SERVER_KEY not set in environment variables");
+}
+
+export const snap = new midtransClient.Snap({
+  isProduction: false,
+  serverKey: process.env.MIDTRANS_SERVER_KEY || "",
+  clientKey: process.env.MIDTRANS_CLIENT_KEY || "",
+});
